@@ -1,20 +1,35 @@
 #include "Gameplay.h"
 #include <iostream>
+#include <vector>
 #define PI 3.14159265
+#define COCOS2D_DEBUG 1
 USING_NS_CC;
 using namespace std;
-int score;
-int speed;
+
+//Scene ELements
 int x, y;
 int width, height;
-int moveP;
-int ballAngle;
 
+//Game Elements
+int score;
+int speed;
+int ballAngle;
+int quad;
+int ballSpeed;
+cocos2d::Size bodySize;
+std::vector<Sprite*> wallSpritesLeft;
+std::vector<Sprite*> wallSpritesRight;
+std::vector<Sprite*> wallSpritesTop;
+std::vector<Sprite*> bricks;
+//Sprites
 Sprite* ballSprite;
 Sprite* wallSprite1;
 Sprite* platformSprite;
-bool leftKey, rightKey;
 
+//Movement
+bool leftKey, rightKey;
+bool isHit;
+bool isHit2;
 
 Scene* Gameplay::createScene()
 {
@@ -31,6 +46,18 @@ Scene* Gameplay::createScene()
 	return scene;
 }
 
+std::wstring Gameplay::s2ws(const std::string& s)
+{
+	int len;
+	int slength = (int)s.length() + 1;
+	len = MultiByteToWideChar(CP_ACP, 0, s.c_str(), slength, 0, 0);
+	wchar_t* buf = new wchar_t[len];
+	MultiByteToWideChar(CP_ACP, 0, s.c_str(), slength, buf, len);
+	std::wstring r(buf);
+	delete[] buf;
+	return r;
+}
+
 bool Gameplay::init()
 {
 	visibleSize = Director::getInstance()->getVisibleSize();
@@ -40,9 +67,36 @@ bool Gameplay::init()
 	height = visibleSize.height;
 	x = width / 2 + origin.x;
 	y = height / 2 + origin.y;
+	
+	for (int x = 0; x <= 10; x++) {
+		Sprite* wall = Sprite::create("wall.png");
+		wall->setPosition(0, (x + 1) *100);
+		this->addChild(wall);
+		wallSpritesLeft.push_back(wall);
+	}
 
+	for (int x = 0; x <= 10; x++) {
+		Sprite* wall = Sprite::create("wall.png");
+		wall->setPosition(visibleSize.width , (x + 1) * 100);
+		this->addChild(wall);
+		wallSpritesRight.push_back(wall);
+	}
+
+	for (int x = 0; x <= 10; x++) {
+		Sprite* wall = Sprite::create("wall2.png");
+		wall->setPosition((x + 1) * 100, visibleSize.height);
+		this->addChild(wall);
+		wallSpritesTop.push_back(wall);
+	}
+	for (int x = 1; x <= 3; x++) {
+		Sprite* wall = Sprite::create("walllevel1.png");
+		wall->setPosition(x * 100 + 100, visibleSize.height / 2 + 200);
+		this->addChild(wall);
+		bricks.push_back(wall);
+	}
+
+	
 	ballSprite = Sprite::create("balllevel1.png");
-	wallSprite1 = Sprite::create("walllevel1.png");
 	platformSprite = Sprite::create("platform.png");
 
 	ballSched = schedule_selector(Gameplay::update);
@@ -50,11 +104,8 @@ bool Gameplay::init()
 	score = 0;
 	speed = 0.1;
 	
-	ballSprite->setPosition(x, y - 100);
+	ballSprite->setPosition(x, y - 200);
 	this->addChild(ballSprite);
-	
-	wallSprite1->setPosition(x, y + 40);
-	this->addChild(wallSprite1);
 	
 	platformSprite->setPosition(x, y - 270);
 	this->addChild(platformSprite);
@@ -93,7 +144,14 @@ bool Gameplay::init()
 			break;
 		}
 	};
-	ballAngle = 45;
+
+	//initial vars
+	ballAngle = 60;
+	quad = 90;
+	ballSpeed = 6;
+	bodySize = bricks.at(0)->getContentSize();
+	isHit = FALSE;
+	isHit2 = FALSE;
 	this->_eventDispatcher->addEventListenerWithSceneGraphPriority(eventListener, platformSprite);
 	this->schedule(ballSched, speed);
 	
@@ -102,40 +160,156 @@ bool Gameplay::init()
 
 void Gameplay::update(float delta)
 {
+	//initializiations
 	int ballX, ballY, platformX, platformY;
 	ballX = ballSprite->getPosition().x;
 	ballY = ballSprite->getPosition().y;
 	platformX = platformSprite->getPositionX();
 	platformY = platformSprite->getPositionY();
-
 	
+	//QUADS
+	//0 = Up Right
+	//90 = Up Left
+	//180 = Down Left
+	//270 = Down Right
 
-	if (ballX == width) {
-		ballAngle += 90;
-	}
-	if (ballX == 0) {
-		ballAngle -= 90;
+	//bumangga sa right wall
+	for (int x = 0; x < wallSpritesRight.size(); x++) {
+		
+		if (ballSprite->getBoundingBox().intersectsRect(wallSpritesRight.at(x)->getBoundingBox())) {
+			switch (quad) {
+			case 0: quad = 90;
+				break;
+			case 270: quad = 180;
+				break;
+			}
+		}
 	}
 
-	if (ballY == height) {
-		ballAngle = -(ballAngle);
+	//bumangga sa left wall
+	for (int x = 0; x < wallSpritesLeft.size(); x++) {
+		if (ballSprite->getBoundingBox().intersectsRect(wallSpritesLeft.at(x)->getBoundingBox())) {
+			switch (quad) {
+			case 90: quad = 0;
+				break;
+			case 180: quad = 270;
+				break;
+			}
+		}
 	}
 
-	if (ballY == platformY && ballX >= platformX - 74 && ballX <= platformX + 74) {
-		ballAngle = 30;
+	//bumangga sa top wall
+	for (int x = 0; x < wallSpritesTop.size(); x++) {
+		if (ballSprite->getBoundingBox().intersectsRect(wallSpritesTop.at(x)->getBoundingBox())) {
+			switch (quad) {
+			case 0: quad = 270;
+				break;
+			case 90: quad = 180;
+				break;
+			}
+		}
 	}
-	ballX = ballX + 2 * cos(ballAngle*PI / 180);
-	ballY = ballY + 2 * sin(ballAngle*PI / 180);
+
+	//bumangga sa platform
+	int platformWidth = platformSprite->getContentSize().width / 5;
+	if (isHit == FALSE) {
+		if (ballSprite->getBoundingBox().intersectsRect(platformSprite->getBoundingBox())) {
+			//first hati ng platform
+			isHit = TRUE;
+			if (ballX >= 0 && ballX < platformX - 74 + platformWidth * 1) {
+				quad = 90;
+				ballAngle = ballAngle / 4;
+			}
+			else if (ballX >= platformX - 74 + platformWidth * 1 && ballX < platformX - 74 + platformWidth * 2) {
+				quad = 90;
+				ballAngle = ballAngle / 2;
+			}
+			else if (ballX >= platformX - 74 + platformWidth * 2 && ballX < platformX - 74 + platformWidth * 3) {
+				switch (quad) {
+				case 180: quad = 90;
+					break;
+				case 270: quad = 0;
+					break;
+				}
+			}
+			else if (ballX >= platformX - 74 + platformWidth * 3 && ballX < platformX - 74 + platformWidth * 4) {
+				quad = 0;
+				ballAngle = ballAngle / 2;
+			}
+			else if (ballX >= platformX - 74 + platformWidth * 4 && ballX <= platformX - 74 + platformWidth * 5) {
+				quad = 0;
+				ballAngle = ballAngle / 4;
+			}
+		}
+		
+
+		}
+	if (!(ballSprite->getBoundingBox().intersectsRect(platformSprite->getBoundingBox()))) {
+		isHit = FALSE;
+	}
+	
+	//bumangga sa wall
+	for (int x = 0; x < bricks.size(); x++) {
+		if (isHit2 == FALSE) {
+			if (ballSprite->getBoundingBox().intersectsRect(bricks.at(x)->getBoundingBox())) {
+				isHit2 = TRUE;
+				if (ballY >= bricks.at(x)->getPositionY() + bodySize.height / 2) {
+					switch (quad) {
+					case 270: quad = 0;
+						break;
+					case 180: quad = 90;
+						break;
+					}
+				}
+				else if (ballY <= bricks.at(x)->getPositionY() - bodySize.height / 2) {
+					switch (quad) {
+					case 0: quad = 270;
+						break;
+					case 90: quad = 180;
+						break;
+					}
+				}
+				else if (ballX <= bricks.at(x)->getPositionX() - bodySize.width / 2) {
+					switch (quad) {
+					case 0: quad = 90;
+						break;
+					case 270: quad = 180;
+						break;
+					}
+				}
+				else if (ballX >= bricks.at(x)->getPositionX() + bodySize.width / 2) {
+					switch (quad) {
+					case 90: quad = 0;
+						break;
+					case 180: quad = 270;
+						break;
+					}
+				}
+				this->removeChild(bricks.at(x));
+				bricks.erase(bricks.begin() + x);
+			}
+		}
+
+		isHit2 = FALSE;
+	}
+
+	//angle of reflection
+	ballAngle = 180 - ballAngle - 90;
+	//pagcompute sa paggalaw
+	ballX = ballX + ballSpeed * cos((ballAngle + quad) * PI / 180);
+	ballY = ballY + ballSpeed * sin((ballAngle + quad) * PI / 180);
 	ballSprite->setPosition(ballX, ballY);
-	ballSprite->setRotation(ballSprite->getRotation() + 5);
+
+
+	//etc movements
+	//ballSprite->setRotation(ballSprite->getRotation() + 5);
 
 	if (leftKey == TRUE && platformX > 74) {
-		platformSprite->setPosition((platformX- 5), platformY);
+		platformSprite->setPosition((platformX - 5), platformY);
 	}
 	if (rightKey == TRUE && platformX < width - 74) {
 		platformSprite->setPosition((platformX + 5), platformY);
 	}
 
 	this->schedule(ballSched, speed);
-	
 }

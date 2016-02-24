@@ -8,6 +8,7 @@ public:
 	virtual bool init();
 	CREATE_FUNC(Gameplay);
 	// implement the "static create()" method manually
+	std::wstring s2ws(const std::string& s);
 
 	void update(float) override;
 private:

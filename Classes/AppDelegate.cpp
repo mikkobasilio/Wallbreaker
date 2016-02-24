@@ -25,7 +25,7 @@ bool AppDelegate::applicationDidFinishLaunching() {
 	auto glview = director->getOpenGLView();
 	if (!glview) {
 		glview = GLViewImpl::create("CoC Breakout");
-		glview->setFrameSize(1200, 600);
+		glview->setFrameSize(800, 600);
 		director->setOpenGLView(glview);
 	}
 	director->setAnimationInterval(0.005f);
