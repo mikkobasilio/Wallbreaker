@@ -88,12 +88,29 @@ bool Gameplay::init()
 		this->addChild(wall);
 		wallSpritesTop.push_back(wall);
 	}
-	for (int x = 1; x <= 3; x++) {
+	for (int x = 0; x <= 6; x++) {
 		Sprite* wall = Sprite::create("walllevel1.png");
 		wall->setPosition(x * 100 + 100, visibleSize.height / 2 + 200);
 		this->addChild(wall);
 		bricks.push_back(wall);
 	}
+
+	for (int x = 0; x <= 4; x++) {
+		Sprite* wall = Sprite::create("walllevel1.png");
+		wall->setPosition(x * 100 + 200, visibleSize.height / 2 + 150);
+		this->addChild(wall);
+		bricks.push_back(wall);
+	}
+	for (int x = 0; x <= 2; x++) {
+		Sprite* wall = Sprite::create("walllevel1.png");
+		wall->setPosition(x * 100 + 300, visibleSize.height / 2 + 100);
+		this->addChild(wall);
+		bricks.push_back(wall);
+	}
+	Sprite* wall = Sprite::create("walllevel1.png");
+	wall->setPosition(400, visibleSize.height / 2 + 50);
+	this->addChild(wall);
+	bricks.push_back(wall);
 
 	
 	ballSprite = Sprite::create("balllevel1.png");
@@ -104,7 +121,7 @@ bool Gameplay::init()
 	score = 0;
 	speed = 0.1;
 	
-	ballSprite->setPosition(x, y - 200);
+	ballSprite->setPosition(x, y - 300);
 	this->addChild(ballSprite);
 	
 	platformSprite->setPosition(x, y - 270);
@@ -302,7 +319,7 @@ void Gameplay::update(float delta)
 
 
 	//etc movements
-	//ballSprite->setRotation(ballSprite->getRotation() + 5);
+	ballSprite->setRotation(ballSprite->getRotation() + 5);
 
 	if (leftKey == TRUE && platformX > 74) {
 		platformSprite->setPosition((platformX - 5), platformY);
